@@ -398,6 +398,17 @@ export const cvs = [
       1,
       2
     ]
+  },
+  {
+    "id": 34,
+    "name": "syrine CV",
+    "age": 22,
+    "job": "UI Designer",
+    "userId": 1,
+    "skillIds": [
+      1,
+      2
+    ]
   }
 ];
   
