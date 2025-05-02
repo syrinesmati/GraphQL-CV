@@ -9,16 +9,16 @@ async function main() {
 
   const alice = await prisma.user.create({
     data: {
-      name: "Alice",
-      email: "alice@mail.com",
+      name: "yasmine",
+      email: "yasmine@mail.com",
       role: Role.ADMIN,
     },
   });
 
   const bob = await prisma.user.create({
     data: {
-      name: "Bob",
-      email: "bob@mail.com",
+      name: "selim",
+      email: "selim@mail.com",
       role: Role.USER,
     },
   });
@@ -45,7 +45,7 @@ async function main() {
     data: {
       name: "Alice Senior Dev",
       age: 28,
-      job: "Full-stack dev",
+      job: "python",
       user: {
         connect: { id: alice.id },
       },
