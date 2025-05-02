@@ -1,34 +1,26 @@
-import { users } from "./data";
-import { skills } from "./data";
-import { cvs } from "./data";
+import { PrismaClient } from '@prisma/client';
+import { createPubSub } from 'graphql-yoga';
 
 
-import { createPubSub } from "graphql-yoga";
+
+
+const prisma = new PrismaClient();
 
 type Events = {
-  CV_ADDED:  [{ cvAdded: any }];    
-  CV_UPDATED:[{ cvUpdated: any }];
-  CV_DELETED:[{ cvDeleted: any }];
+  CV_ADDED: [{ cvAdded: any }];
+  CV_UPDATED: [{ cvUpdated: any }];
+  CV_DELETED: [{ cvDeleted: any }];
 };
-export const pubSub = createPubSub<Events>();
 
-
+const pubSub = createPubSub<Events>();
 
 export interface Context {
-  users: typeof users;
-  skills: typeof skills;
-  cvs: typeof cvs;
-
+  prisma: PrismaClient;
   pubSub: typeof pubSub;
 
 }
 
 export const context: Context = {
-  users: users,
-  skills: skills,
-  cvs: cvs,
-
-  pubSub
-
-
+  prisma,
+  pubSub,
 };

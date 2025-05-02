@@ -1,75 +1,86 @@
-import { PrismaClient, Role } from "@prisma/client";
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  await prisma.cv.deleteMany();
-  await prisma.skill.deleteMany();
-  await prisma.user.deleteMany();
+  // Create skills
+  const python = await prisma.skill.create({ data: { designation: 'Python' } });
+  const graphql = await prisma.skill.create({ data: { designation: 'GraphQL' } });
+  const docker = await prisma.skill.create({ data: { designation: 'Docker' } });
 
-  const alice = await prisma.user.create({
+  // Create users
+  const syrine = await prisma.user.create({
     data: {
-      name: "yasmine",
-      email: "yasmine@mail.com",
-      role: Role.ADMIN,
+      name: 'Syrine',
+      email: 'Syrine@example.com',
+      role: 'ADMIN',
     },
   });
 
-  const bob = await prisma.user.create({
+  const ala = await prisma.user.create({
     data: {
-      name: "selim",
-      email: "selim@mail.com",
-      role: Role.USER,
+      name: 'ala',
+      email: 'ala@example.com',
+      role: 'USER',
     },
   });
 
-  const typescript = await prisma.skill.create({
-    data: {
-      designation: "TypeScript",
-    },
-  });
-
-  const graphql = await prisma.skill.create({
-    data: {
-      designation: "GraphQL",
-    },
-  });
-
-  const docker = await prisma.skill.create({
-    data: {
-      designation: "Docker",
-    },
-  });
-
+  // Create CVs
   await prisma.cv.create({
     data: {
-      name: "Alice Senior Dev",
-      age: 28,
-      job: "python",
-      user: {
-        connect: { id: alice.id },
-      },
+      name: 'Syrine CV',
+      age: 35,
+      job: 'Full Stack Developer',
+      userId: syrine.id,
       skills: {
-        connect: [{ id: typescript.id }, { id: graphql.id }, { id: docker.id }],
+        connect: [{ id: python.id }, { id: graphql.id }, { id: docker.id }],
       },
     },
   });
 
-  await prisma.cv.create({
-    data: {
-      name: "Bob Junior Dev",
+  await prisma.cv.createMany({
+    data: [
+      {
+        name: 'Ala CV',
+        age: 28,
+        job: 'Backend Developer',
+        userId: ala.id,
+      },
+      {
+        name: 'Ala CV v2',
+        age: 28,
+        job: 'Cloud Architect',
+        userId: ala.id,
+      },
+    ],
+  });
+
+  const cvList: { name: string; age: number; job: string; userId: number }[] = [];
+  for (let i = 0; i < 30; i++) {
+    cvList.push({
+      name: 'syrine CV',
       age: 22,
-      job: "Backend dev",
-      user: {
-        connect: { id: bob.id },
-      },
-      skills: {
-        connect: [{ id: typescript.id }],
-      },
-    },
-  });
+      job: 'UI Designer',
+      userId: syrine.id,
+    });
+  }
 
-  console.log("Database has been seeded!");
+  await prisma.cv.createMany({ data: cvList });
+
+  // Connect skills to the bulk CVs
+  const allCvs = await prisma.cv.findMany({ where: { userId: syrine.id } });
+  for (const cv of allCvs) {
+    await prisma.cv.update({
+      where: { id: cv.id },
+      data: {
+        skills: {
+          connect: [{ id: python.id }, { id: graphql.id }],
+        },
+      },
+    });
+  }
+
+  console.log('✅ Seed completed!');
 }
 
 main()
@@ -77,6 +88,4 @@ main()
     console.error(e);
     process.exit(1);
   })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .finally(() => prisma.$disconnect());

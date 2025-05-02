@@ -9,10 +9,11 @@
     "resolveJsonModule": true,
     "rootDir": "./src",
     "outDir": "./dist",
-    "baseUrl": "./",              // Ensures module resolution works across folders
+    "baseUrl": "./",
     "paths": {
-      "*": ["node_modules/*"]      // Ensures that packages can be found in node_modules
-    }
+      "*": ["node_modules/*"]
+    },
+    "types": ["node"]  // Add this line to include Node.js types globally
   },
-  "include": ["src/**/*", "schema/**/*"]  // Make sure both src and schema folders are included
+  "include": ["src/**/*", "schema/**/*"]
 }

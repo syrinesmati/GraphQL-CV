@@ -1,87 +1,110 @@
-import * as fs from "fs";
-import * as path from "path";
 import { Context } from "../context";
 
-import { pubSub } from "../context";
-
-// Fonction pour sauvegarder les données après mutation
-const saveDataToFile = (cvs: any[], users: any[], skills: any[]) => {
-  const dataPath = path.resolve(__dirname, "../data.ts");
-
-  const fileContent = `
-export const users = ${JSON.stringify(users, null, 2)};
-export const skills = ${JSON.stringify(skills, null, 2)};
-export const cvs = ${JSON.stringify(cvs, null, 2)};
-  `;
-
-  fs.writeFileSync(dataPath, fileContent, { encoding: "utf-8" });
-};
-
 export const Mutation = {
-  createCv: (_: any, { input }: any, context: Context) => {
-    const { cvs, users, skills } = context;
+  createCv: async (_parent: any, { input }: any, { prisma, pubSub }: Context) => {
+    const user = await prisma.user.findUnique({
+      where: { id: input.userId }
+    });
+    if (!user) throw new Error(`User with id ${input.userId} not found`);
 
-    const newId = cvs.length > 0 ? cvs[cvs.length - 1].id + 1 : 1;
-    const user = users.find(u => u.id === input.userId);
-    if (!user) throw new Error("User not found");
+    if (input.skillIds && input.skillIds.length > 0) {
+      const skills = await prisma.skill.findMany({
+        where: { id: { in: input.skillIds } }
+      });
+      if (skills.length !== input.skillIds.length) {
+        throw new Error("One or more skills not found");
+      }
+    }
 
-    input.skillIds.forEach((id: number) => {
-      const skill = skills.find(s => s.id === id);
-      if (!skill) throw new Error(`Skill with id ${id} not found`);
+    const newCv = await prisma.cv.create({
+      data: {
+        name: input.name,
+        age: input.age,
+        job: input.job,
+        user: {
+          connect: { id: input.userId }
+        },
+        skills: {
+          connect: input.skillIds?.map((id: number) => ({ id })) || []
+        }
+      },
+      include: {
+        user: true,
+        skills: true // plus besoin de nested include
+      }
     });
 
-    const newCv = { id: newId, ...input };
-    cvs.push(newCv);
-
-    saveDataToFile(cvs, users, skills);
-    pubSub.publish("CV_ADDED", { cvAdded: newCv });
+    await pubSub.publish("CV_ADDED", { cvAdded: newCv });
 
     return newCv;
   },
 
-  updateCv: (_: any, { input }: any, context: Context) => {
-    const { cvs, users, skills } = context;
+  updateCv: async (_parent: any, { input }: any, { prisma, pubSub }: Context) => {
+    const existingCv = await prisma.cv.findUnique({
+      where: { id: input.id }
+    });
+    if (!existingCv) throw new Error(`CV with id ${input.id} not found`);
 
-    const index = cvs.findIndex(cv => cv.id === input.id);
-    if (index === -1) throw new Error("CV not found");
-
-    if (input.userId && !users.find(u => u.id === input.userId)) {
-      throw new Error("User not found");
-    }
-
-    if (input.skillIds) {
-      input.skillIds.forEach((id: number) => {
-        if (!skills.find(s => s.id === id)) {
-          throw new Error(`Skill with id ${id} not found`);
-        }
+    if (input.userId) {
+      const user = await prisma.user.findUnique({
+        where: { id: input.userId }
       });
+      if (!user) throw new Error(`User with id ${input.userId} not found`);
     }
 
-    const updatedCv = {
-      ...cvs[index],
-      ...input,
-    };
+    const updateData: any = {};
+    if (input.name !== undefined) updateData.name = input.name;
+    if (input.age !== undefined) updateData.age = input.age;
+    if (input.job !== undefined) updateData.job = input.job;
+    if (input.userId !== undefined) {
+      updateData.user = {
+        connect: { id: input.userId }
+      };
+    }
 
-    cvs[index] = updatedCv;
+    if (input.skillIds !== undefined) {
+      const skills = await prisma.skill.findMany({
+        where: { id: { in: input.skillIds } }
+      });
+      if (skills.length !== input.skillIds.length) {
+        throw new Error("One or more skills not found");
+      }
 
-    saveDataToFile(cvs, users, skills);
-    pubSub.publish("CV_UPDATED", { cvUpdated: updatedCv });
+      updateData.skills = {
+        set: input.skillIds.map((id: number) => ({ id })) // met à jour la relation
+      };
+    }
+
+    const updatedCv = await prisma.cv.update({
+      where: { id: input.id },
+      data: updateData,
+      include: {
+        user: true,
+        skills: true
+      }
+    });
+
+    await pubSub.publish("CV_UPDATED", { cvUpdated: updatedCv });
 
     return updatedCv;
   },
 
-  removeCv: (_: any, { id }: { id: number }, context: Context) => {
-    const { cvs, users, skills } = context;
+  removeCv: async (_parent: any, { id }: { id: number }, { prisma, pubSub }: Context) => {
+    const cv = await prisma.cv.findUnique({
+      where: { id },
+      include: {
+        user: true,
+        skills: true
+      }
+    });
+    if (!cv) throw new Error(`CV with id ${id} not found`);
 
-    const index = cvs.findIndex(cv => cv.id === id);
-    if (index === -1) throw new Error("CV not found");
+    await prisma.cv.delete({
+      where: { id }
+    });
 
-    const deletedCv = cvs[index];
-    cvs.splice(index, 1);
-
-    saveDataToFile(cvs, users, skills);
-    pubSub.publish("CV_DELETED", { cvDeleted: deletedCv });
+    await pubSub.publish("CV_DELETED", { cvDeleted: cv });
 
     return true;
-  },
+  }
 };
