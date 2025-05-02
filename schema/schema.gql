@@ -1,0 +1,89 @@
+
+
+type Cv {
+  id: ID!
+  name: String!
+  age: Int!
+  job: String!
+  user: User!
+  skills: [Skill!]
+}
+
+type Skill {
+  id: ID!
+  designation: String!
+  cvs: [Cv!]
+}
+
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  role: Role!
+  cvs: [Cv!]
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+type CVSkill {
+  cv: Cv!
+  skill: Skill!
+}
+
+
+
+
+input CreateCvInput {
+  name: String!
+  age: Int!
+  job: String!
+  userId: Int!
+  skillIds: [Int!]!
+}
+
+input UpdateCvInput {
+  id: Int!
+  name: String
+  age: Int
+  job: String
+  userId: Int
+  skillIds: [Int!]
+}
+
+
+
+
+
+type Query {
+  # Récupération de tous les CVs
+  cvs: [Cv!]!
+  
+  # Récupération d'un CV spécifique par ID
+  cv(id: ID!): Cv
+  
+  
+}
+
+
+
+
+
+
+
+type Mutation {
+  createCv(input: CreateCvInput!): Cv!
+  updateCv(input: UpdateCvInput!): Cv!
+  removeCv(id: Int!): Boolean!
+
+}
+
+
+
+type Subscription {
+  cvAdded: Cv!
+  cvUpdated: Cv!
+  cvDeleted: Cv!
+}
