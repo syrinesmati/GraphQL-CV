@@ -34,7 +34,7 @@ export const Mutation = {
       }
     });
 
-    await pubSub.publish("CV_ADDED", { cvAdded: newCv });
+   pubSub.publish("CV_ADDED", { cvAdded: newCv });
 
     return newCv;
   },

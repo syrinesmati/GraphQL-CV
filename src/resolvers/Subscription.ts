@@ -3,7 +3,9 @@ import { Context } from "../context";
 export const Subscription = {
   cvAdded: {
     subscribe: async (_: any, __: any, { pubSub }: Context) =>
-      pubSub.subscribe("CV_ADDED"),
+
+       pubSub.subscribe("CV_ADDED"),
+     
     resolve: (payload: { cvAdded: any }) => payload.cvAdded,
   },
   cvUpdated: {
